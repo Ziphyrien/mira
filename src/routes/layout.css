@@ -1,0 +1,88 @@
+@import "tailwindcss" source("../");
+@plugin '@iconify/tailwind4';
+@plugin 'daisyui' {
+  themes: false;
+}
+
+@plugin 'daisyui/theme' {
+  name: "mira";
+  default: true;
+  color-scheme: light;
+  --color-base-100: oklch(99% 0 0);
+  --color-base-200: oklch(96.5% 0.003 264);
+  --color-base-300: oklch(91% 0.006 264);
+  --color-base-content: oklch(22% 0.01 264);
+  --color-primary: oklch(55% 0.17 262);
+  --color-primary-content: oklch(99% 0 0);
+  --color-secondary: oklch(40% 0.02 264);
+  --color-secondary-content: oklch(99% 0 0);
+  --color-accent: oklch(65% 0.12 200);
+  --color-accent-content: oklch(99% 0 0);
+  --color-neutral: oklch(27% 0.01 264);
+  --color-neutral-content: oklch(98% 0 0);
+  --color-info: oklch(62% 0.14 240);
+  --color-info-content: oklch(99% 0 0);
+  --color-success: oklch(62% 0.15 155);
+  --color-success-content: oklch(99% 0 0);
+  --color-warning: oklch(77% 0.15 75);
+  --color-warning-content: oklch(25% 0.03 75);
+  --color-error: oklch(58% 0.2 25);
+  --color-error-content: oklch(99% 0 0);
+  --radius-selector: 0.75rem;
+  --radius-field: 0.625rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin 'daisyui/theme' {
+  name: "mira-dark";
+  prefersdark: true;
+  color-scheme: dark;
+  --color-base-100: oklch(18% 0.008 264);
+  --color-base-200: oklch(22% 0.01 264);
+  --color-base-300: oklch(30% 0.012 264);
+  --color-base-content: oklch(93% 0.005 264);
+  --color-primary: oklch(68% 0.15 262);
+  --color-primary-content: oklch(15% 0.02 262);
+  --color-secondary: oklch(80% 0.02 264);
+  --color-secondary-content: oklch(18% 0.01 264);
+  --color-accent: oklch(72% 0.11 200);
+  --color-accent-content: oklch(15% 0.02 200);
+  --color-neutral: oklch(26% 0.01 264);
+  --color-neutral-content: oklch(93% 0 0);
+  --color-info: oklch(70% 0.12 240);
+  --color-info-content: oklch(15% 0.02 240);
+  --color-success: oklch(70% 0.14 155);
+  --color-success-content: oklch(15% 0.02 155);
+  --color-warning: oklch(80% 0.14 75);
+  --color-warning-content: oklch(20% 0.03 75);
+  --color-error: oklch(68% 0.19 25);
+  --color-error-content: oklch(15% 0.02 25);
+  --radius-selector: 0.75rem;
+  --radius-field: 0.625rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@theme {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei",
+    "Noto Sans SC", sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

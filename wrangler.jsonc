@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Deploy config: one Worker = SvelteKit app + Durable Objects (worker/index.ts).
+  "name": "mira",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "alias": { "mira:kit": "./.svelte-kit/cloudflare/_worker.js" },
+  "assets": { "binding": "ASSETS", "directory": ".svelte-kit/cloudflare" },
+  "routes": [{ "pattern": "ink.zipawa.top/*", "zone_name": "zipawa.top" }],
+  "workers_dev": true,
+  // Background work is scheduled per account by Durable Object alarms.
+  "triggers": { "crons": [] },
+  "preview_urls": false,
+  "durable_objects": {
+    "bindings": [
+      { "name": "SPACE", "class_name": "Space" },
+      { "name": "DIRECTORY", "class_name": "Directory" },
+    ],
+  },
+  "exports": {
+    "Space": { "type": "durable-object", "storage": "sqlite" },
+    "Directory": { "type": "durable-object", "storage": "sqlite" },
+  },
+  "secrets": { "required": ["ADMIN_TOKEN"] },
+  "ai": { "binding": "AI" },
+  "upload_source_maps": true,
+  "observability": {
+    "enabled": true,
+    "traces": { "enabled": true, "head_sampling_rate": 1 },
+    "issues": { "enabled": true },
+  },
+}

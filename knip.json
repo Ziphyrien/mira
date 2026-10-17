@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["scripts/*.mjs"],
+  "project": [
+    "src/**/*.{ts,svelte,css}",
+    "worker/**/*.ts",
+    "scripts/**/*.mjs",
+    "tests/**/*.{ts,mjs}"
+  ],
+  "ignoreDependencies": ["@iconify-json/lucide", "cloudflare"]
+}

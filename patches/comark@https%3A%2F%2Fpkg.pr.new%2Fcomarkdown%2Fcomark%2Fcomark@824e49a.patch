@@ -1,0 +1,27 @@
+diff --git a/dist/internal/parse/auto-close/index.js b/dist/internal/parse/auto-close/index.js
+index a5b65d419553139fdd971b0b6201169150182fdb..a75fa24f42eb405c214e8328b37207234f4c088f 100644
+--- a/dist/internal/parse/auto-close/index.js
++++ b/dist/internal/parse/auto-close/index.js
+@@ -397,9 +397,11 @@ function healRegion(text, o) {
+             const openRight = next !== '' && !isSpaceCp(next);
+             const enabled = n === 1 ? o.italic : n === 2 ? o.bold : o.boldItalic;
+             if (c === 42) {
+-                const inWord = attachedLeft && isAlnum(prev) && isAlnum(next);
++                const inWord = attachedLeft && isAlnum(prev) && isAlnum(next)
++                    && !CJK_CP_RE.test(prev) && !CJK_CP_RE.test(next);
+                 if (!inWord || starInWord) {
+-                    if (attachedLeft && top !== null && top.k === F_STAR && (!inWord || top.len === n)) {
++                    if (attachedLeft && top !== null && top.k === F_STAR && (!inWord || top.len === n)
++                        && (!(CJK_CP_RE.test(prev) && CJK_CP_RE.test(next)) || n >= top.len)) {
+                         closeRun(frames, F_STAR, n);
+                         starInWord = true;
+                         i += n - 1;
+@@ -807,6 +809,8 @@ function openCodeSpan(text, limit) {
+     }
+     return len === 0 ? null : { start, len, end };
+ }
++// CJK letters can border emphasis without a word separator (comark#493).
++const CJK_CP_RE = /[\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Hangul}]/u;
+ const ALNUM_CP_RE = /\p{L}|\p{N}/u;
+ function isAlnum(cp) {
+     if (cp === '')

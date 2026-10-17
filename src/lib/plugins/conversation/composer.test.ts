@@ -1,0 +1,64 @@
+import { describe, expect, it } from "vite-plus/test";
+import { ComposerState } from "#lib/plugins/conversation/composer.svelte.js";
+
+describe("conversation composer ownership", () => {
+  it("replaces only the selected range across interim revisions and restores it on cancellation", () => {
+    const composer = new ComposerState();
+    composer.setDraft("前面旧文字后面");
+    composer.select(2, 5);
+    expect(composer.beginDictation()).toBe(true);
+    expect(composer.previewDictation("你好")).toBe("");
+    expect(composer.draft).toBe("前面你好后面");
+    expect(composer.previewDictation("明天下午见")).toBe("");
+    expect(composer.draft).toBe("前面明天下午见后面");
+    composer.finishDictation(false);
+    expect(composer.draft).toBe("前面旧文字后面");
+    expect(composer.selection).toEqual({ start: 2, end: 5 });
+    expect(composer.composing).toBe(false);
+    composer.select(2, 2);
+    composer.beginDictation();
+    composer.previewDictation("插入");
+    composer.finishDictation(true);
+    expect(composer.draft).toBe("前面插入旧文字后面");
+    expect(composer.selection).toEqual({ start: 4, end: 4 });
+  });
+  it("bounds streamed replacements and preserves a newer external edit", () => {
+    const composer = new ComposerState();
+    composer.setDraft("a".repeat(3999));
+    composer.beginDictation();
+    expect(composer.previewDictation("字")).toBe("");
+    expect(composer.previewDictation("再说")).toBe("输入内容已满，请先发送或缩短草稿。");
+    expect(composer.draft).toHaveLength(4000);
+    composer.finishDictation(true);
+    composer.beginDictation();
+    composer.setDraft("新的草稿");
+    expect(composer.previewDictation("过期结果")).not.toBe("");
+    composer.finishDictation(false);
+    expect(composer.draft).toBe("新的草稿");
+    composer.setDraft("b".repeat(4001));
+    expect(composer.draft).toHaveLength(4000);
+  });
+  it("preserves edits made during sending and fences late failures after disposal across instances", async () => {
+    const first = new ComposerState();
+    const second = new ComposerState();
+    first.setDraft("sent");
+    const revision = first.revision;
+    first.setDraft("new draft");
+    first.clearSent("sent", revision);
+    expect(first.draft).toBe("new draft");
+    first.setDraft("sent");
+    first.clearSent("sent", revision);
+    expect(first.draft).toBe("sent");
+    second.setDraft("another account");
+    const pending = Promise.withResolvers<void>();
+    first.run(pending.promise);
+    first.dispose();
+    pending.reject(new Error("old account failure"));
+    await pending.promise.catch(() => {});
+    expect(first.error).toBe("");
+    expect(second.draft).toBe("another account");
+    expect(second.error).toBe("");
+    second.clearSent("another account");
+    expect(second.draft).toBe("");
+  });
+});

@@ -1,0 +1,8 @@
+{
+	// Only read by adapter-cloudflare during `vp build`; deployment uses wrangler.jsonc.
+	"name": "mira",
+	"main": ".svelte-kit/cloudflare/_worker.js",
+	"compatibility_date": "2026-10-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"assets": { "binding": "ASSETS", "directory": ".svelte-kit/cloudflare" }
+}

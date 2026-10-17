@@ -18,6 +18,11 @@
   const voice = owner.voice;
   const profile = owner.profile;
   const busy = $derived(!chat().matches("idle") || chat().serverBusy);
+  const pending = $derived.by(() => {
+    if (chat().context.searches.some((search) => search.status === "running")) return "正在搜索网页";
+    if (chat().context.phase === "recall") return "正在回顾之前的对话";
+    return "正在想";
+  });
   const suggestions = $derived(
     (profile.profile.focus.length
       ? FOCUS.filter((item) => profile.profile.focus.includes(item.id))
@@ -276,14 +281,8 @@
       </Virtualizer>
       {/if}
       <div class="space-y-5">
-      {#if busy}{#if chat().matches("streaming") || (chat().serverBusy && !chat().matches("failed"))}<p
-            class="text-base-content/60 flex items-center gap-2 text-sm"
-            role="status"
-          >
-            <span class="loading loading-dots loading-sm"></span>
-            {chat().context.phase === "recall" ? "正在回顾之前的对话" : "正在想"}
-          </p>{/if}
-        {#if chat().matches("streaming") && (chat().context.text || chat().context.thinkingText || chat().context.searches.length)}<Message
+      {#if busy}
+        {#if chat().matches("streaming") || (chat().serverBusy && !chat().matches("failed"))}<Message
             row={{
               i: -999999,
               kind: "mira",
@@ -292,6 +291,7 @@
               searches: chat().context.searches,
               at: Date.now(),
             }}
+            {pending}
             streaming
           />{/if}
         {#if chat().matches("failed")}<div role="alert" class="alert alert-soft alert-warning">

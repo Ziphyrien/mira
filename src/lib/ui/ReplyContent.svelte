@@ -19,10 +19,12 @@
     text,
     searches = [],
     streaming = false,
+    pending,
   }: {
     text: string;
     searches?: SearchActivity[];
     streaming?: boolean;
+    pending?: string;
   } = $props();
   let document = $state.raw<MarkdownDocument>();
   let error = $state("");
@@ -66,9 +68,18 @@
 </script>
 
 {#if error}<p class="text-error text-sm" role="alert">{error}</p>
-{:else if document}<div class="prose-mira">
-    <MarkdownDocumentView value={document} {streaming} {components} {componentsManifest} resolver={Resolver} caret={streaming} />
-  </div>{/if}
+{:else if pending || document?.nodes.length}
+  <div class="prose-mira">
+    {#if document?.nodes.length}
+      <MarkdownDocumentView value={document} {streaming} {components} {componentsManifest} resolver={Resolver} caret={streaming} />
+    {:else if pending}
+      <div class="text-base-content/60 flex h-[1lh] items-center gap-2" role="status" aria-label="回复状态">
+        <span class="loading loading-dots size-5 shrink-0" aria-hidden="true"></span>
+        <span class="text-sm">{pending}</span>
+      </div>
+    {/if}
+  </div>
+{/if}
 {#if citations.length}
   <div class="mt-3 flex flex-wrap items-center gap-1.5" aria-label="引用来源">
     <span class="text-base-content/45 mr-1 text-[11px]">引用来源</span>
@@ -137,6 +148,8 @@
   .prose-mira {
     --gap: 0.75em;
     line-height: 1.75;
+    min-height: 1lh;
+    display: flow-root;
     :global {
       p,
       ul,
@@ -201,8 +214,11 @@
           padding: 0.35em 0.6em;
         }
       }
-      > :first-child {
+      > .comark-content > :first-child {
         margin-top: 0;
+      }
+      > .comark-content > :last-child {
+        margin-bottom: 0;
       }
     }
   }

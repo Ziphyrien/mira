@@ -11,6 +11,7 @@
   let {
     row,
     streaming = false,
+    pending,
     onSpeak,
     onRegenerate,
     speechDisabled = false,
@@ -21,6 +22,7 @@
       "kind" | "text" | "image" | "thinking" | "searches" | "stopped" | "at"
     > & { i: number };
     streaming?: boolean;
+    pending?: string;
     onSpeak?: () => void;
     onRegenerate?: () => void;
     speechDisabled?: boolean;
@@ -77,9 +79,6 @@
     </div>
   {:else}
     <div class="w-full">
-      {#each row.searches ?? [] as search (search.id)}<SearchActivity
-          {search}
-        />{/each}
       {#if row.thinking}
         <Disclosure class="bg-base-200/40 border-base-300 mb-3 rounded-xl border" bind:open={thoughtOpen} triggerClass="text-base-content/60 gap-2 px-3 py-2 text-sm select-none">
           {#snippet trigger(open)}
@@ -96,7 +95,10 @@
           </div>
         </Disclosure>
       {/if}
-      <ReplyContent text={row.text} searches={row.searches} {streaming} />
+      {#each row.searches ?? [] as search (search.id)}<SearchActivity
+          {search}
+        />{/each}
+      <ReplyContent text={row.text} searches={row.searches} {streaming} {pending} />
     </div>
   {/if}
 </article>

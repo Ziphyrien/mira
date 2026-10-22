@@ -35,7 +35,7 @@
 
 <main class="mx-auto max-w-6xl p-6">
   <header class="mb-6 flex items-center justify-between">
-    <h1 class="text-xl font-semibold">Mira 管理后台</h1>
+    <div class="flex items-center gap-4"><h1 class="text-xl font-semibold">Mira 管理后台</h1><a class="btn btn-ghost btn-sm" href="/research">研究工作台</a></div>
     {#if snap().admin}<button class="btn btn-ghost btn-sm" onclick={handleLogout}>
         <span class="icon-[lucide--log-out]"></span>
         退出

@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { openDirectory } from "./core/directory";
+import type { StudyListing } from "../src/lib/contracts/research";
 import type { SpaceSummary } from "../src/lib/contracts";
 /** Platform adapter only. Index and private model settings are separate feature capabilities. */
 export class Directory extends DurableObject<Env> {
@@ -13,6 +14,21 @@ export class Directory extends DurableObject<Env> {
       this.runtime = opening;
     }
     return this.runtime;
+  }
+  async researchList() {
+    return (await this.ready()).research.list(null);
+  }
+  async researchAdd(entry: StudyListing) {
+    return (await this.ready()).research.add(entry);
+  }
+  async researchShare(id: string) {
+    return (await this.ready()).research.share(id);
+  }
+  async researchResolve(code: string) {
+    return (await this.ready()).research.resolve(code);
+  }
+  async researchRemove(id: string) {
+    return (await this.ready()).research.remove(id);
   }
   async aiConfiguration() {
     return (await this.ready()).models.configuration(null);

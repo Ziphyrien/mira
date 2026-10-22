@@ -31,7 +31,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     isApi ||
     event.url.pathname === "/" ||
     event.url.pathname === "/admin" ||
-    event.url.pathname.startsWith("/admin/")
+    event.url.pathname.startsWith("/admin/") ||
+    event.url.pathname === "/research" ||
+    event.url.pathname.startsWith("/research/") ||
+    event.url.pathname.startsWith("/r/")
   )
     headers.set("Cache-Control", "private, no-store");
   return new Response(response.body, {

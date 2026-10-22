@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { plan as researchPlan } from "../research-fixture.ts";
 import { ReadableStream } from "node:stream/web";
 import { Response, type Request } from "miniflare";
 import { createSpeechProvider } from "./speech-provider.ts";
@@ -19,6 +20,29 @@ export function createProvider() {
   const timers = new Set<ReturnType<typeof setTimeout>>();
   return {
     fetch: async (request: Request) => {
+      if (
+        new URL(request.url).hostname === "api.tavily.com" &&
+        new URL(request.url).pathname === "/extract"
+      )
+        return Response.json({
+          results: [
+            {
+              url: "https://example.org/methods",
+              raw_content:
+                "Pretest neutral questions in the target population, keep measurement comparable and evaluate sampling assumptions.",
+            },
+          ],
+        });
+      if (new URL(request.url).hostname === "api.tavily.com")
+        return Response.json({
+          results: [
+            {
+              title: "Research methods fixture",
+              url: "https://example.org/methods",
+              content: "Use neutral wording, pretesting and explicit sampling limitations.",
+            },
+          ],
+        });
       if (new URL(request.url).hostname === "api.xiaomimimo.com") return speech(request);
       assert.equal(
         new URL(request.url).hostname,
@@ -56,7 +80,59 @@ export function createProvider() {
       const hold = context.includes(cancellationPrompt);
       const long = context.includes(scrollPrompt);
       let chunks = [`${replyPrefix} ${++sequence}`];
-      if (compacting) chunks = ["本地记忆摘要"];
+      if (context.includes("You coordinate research planning")) {
+        const state = JSON.parse((input.messages.at(-1) as { content: string }).content) as {
+          brief: { topic: string };
+          exchanges: unknown[];
+          sources: { url: string; access: string }[];
+        };
+        let action: unknown = { action: "draft" };
+        if (state.brief.topic.includes("[clarify]") && !state.exchanges.length)
+          action = {
+            action: "clarify",
+            questions: [
+              { question: "你主要希望了解谁的哪类经历？", reason: "这会影响对象范围与问题措辞。" },
+            ],
+          };
+        else if (!state.sources.length)
+          action = { action: "search", query: "mixed work experience measurement" };
+        else if (state.sources.some((s) => s.access === "search_excerpt"))
+          action = { action: "read", urls: state.sources.map((s) => s.url) };
+        chunks = [JSON.stringify(action)];
+      } else if (context.includes("careful Chinese-language research design assistant")) {
+        const state = JSON.parse((input.messages.at(-1) as { content: string }).content) as {
+          revision?: { plan: typeof researchPlan; instruction: string };
+        };
+        const result = structuredClone(state.revision?.plan ?? researchPlan);
+        if (state.revision) result.title = "调整后的工作体验";
+        chunks = [JSON.stringify(result)];
+      } else if (context.includes("You conduct a voluntary Chinese research interview")) {
+        const last = input.messages.at(-1) as { content: string };
+        const state = JSON.parse(last.content) as {
+          remaining: string[];
+          followupsUsed: number;
+          answers: unknown[];
+        };
+        let decision: unknown = { intro: "谢谢，接下来了解另一个方面。", action: "core" };
+        if (!state.remaining.length)
+          decision = state.followupsUsed
+            ? { intro: "谢谢你的参与。", action: "finish" }
+            : {
+                intro: "还有一个与刚才分享有关的小问题。",
+                action: "probe",
+                probe: {
+                  ...researchPlan.questions[7],
+                  id: "clarify",
+                  prompt: "哪种情况最能解释刚才的体验？",
+                  kind: "select",
+                  options: [
+                    { id: "focus", label: "需要专注时间" },
+                    { id: "sync", label: "需要更多同步" },
+                  ],
+                },
+              };
+        chunks = [JSON.stringify(decision)];
+      } else if (compacting) chunks = ["本地记忆摘要"];
       else if (hold) chunks = ["正在生成的片段"];
       else if (context.includes("rpc-speech "))
         chunks = [

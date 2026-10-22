@@ -3,4 +3,5 @@ import kit from "mira:kit";
 
 export { Directory } from "./directory";
 export { Space } from "./space";
+export { Research } from "./research";
 export default kit satisfies ExportedHandler<Env>;

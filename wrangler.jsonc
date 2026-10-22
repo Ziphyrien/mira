@@ -16,11 +16,13 @@
     "bindings": [
       { "name": "SPACE", "class_name": "Space" },
       { "name": "DIRECTORY", "class_name": "Directory" },
+      { "name": "RESEARCH", "class_name": "Research" },
     ],
   },
   "exports": {
     "Space": { "type": "durable-object", "storage": "sqlite" },
     "Directory": { "type": "durable-object", "storage": "sqlite" },
+    "Research": { "type": "durable-object", "storage": "sqlite" },
   },
   "secrets": { "required": ["ADMIN_TOKEN"] },
   "ai": { "binding": "AI" },

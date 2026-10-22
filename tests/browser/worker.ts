@@ -43,6 +43,7 @@ const runtime = new Miniflare({
         env: {
           ADMIN_TOKEN: { type: "text", value: adminToken },
           ASSETS: { type: "assets" },
+          RESEARCH: { type: "durable-object", worker: "mira-browser-test", exportName: "Research" },
           SPACE: { type: "durable-object", worker: "mira-browser-test", exportName: "Space" },
           DIRECTORY: {
             type: "durable-object",
@@ -51,6 +52,7 @@ const runtime = new Miniflare({
           },
         },
         exports: {
+          Research: { type: "durable-object", storage: "sqlite" },
           Space: { type: "durable-object", storage: "sqlite" },
           Directory: { type: "durable-object", storage: "sqlite" },
         },
@@ -112,7 +114,11 @@ try {
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookie.split(";")[0] },
     body: JSON.stringify({
-      keys: { deepseek: "synthetic-key", mimo: "synthetic-speech-key" },
+      keys: {
+        deepseek: "synthetic-key",
+        mimo: "synthetic-speech-key",
+        tavily: "synthetic-search-key",
+      },
       chat: choice,
       memory: { provider: "deepseek", modelId: "deepseek-v4-pro" },
     }),

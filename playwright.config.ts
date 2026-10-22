@@ -11,6 +11,7 @@ export default defineConfig({
   use: {
     ...devices["Desktop Chrome"],
     baseURL,
+    extraHTTPHeaders: { "X-Mira-Research-Protocol": "2" },
     channel:
       process.env.MIRA_BROWSER_CHANNEL ?? (process.platform === "win32" ? "msedge" : undefined),
     trace: "retain-on-failure",

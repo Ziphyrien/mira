@@ -32,7 +32,7 @@ function empty(context = ""): RecordData {
   return { schema: 1, context, generation: crypto.randomUUID(), data: undefined };
 }
 /** Validate draft structure while retaining incomplete form fields; saving still uses the domain schema. */
-export function matchesDraft(value: unknown, initial: unknown): boolean {
+function matchesDraft(value: unknown, initial: unknown): boolean {
   if (initial === undefined || initial === null)
     return (
       value === undefined ||

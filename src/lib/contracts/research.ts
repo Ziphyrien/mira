@@ -4,7 +4,7 @@ import { orderQuestions } from "./question-graph";
 const short = z.string().trim().min(1).max(500);
 const id = z.string().regex(/^[a-z][a-z0-9_]{0,39}$/);
 const option = z.object({ id, label: z.string().min(1).max(120) }).strict();
-export const ResponsePolicy = z
+const ResponsePolicy = z
   .object({
     rationale: short.describe(
       "Measurement rationale for allowing or omitting nonresponse choices, their analysis and routing; follow validated instrument requirements when applicable.",
@@ -25,7 +25,7 @@ export const ResponsePolicy = z
       ),
   })
   .strict();
-export const QuestionCondition = z
+const QuestionCondition = z
   .object({
     questionId: id,
     operator: z.enum([
@@ -42,7 +42,7 @@ export const QuestionCondition = z
     value: z.union([z.string(), z.number().finite(), z.null()]),
   })
   .strict();
-export const TemporalFrame = z
+const TemporalFrame = z
   .object({
     anchor: z.enum(["session_start", "response_time", "fixed_window", "reported_event"]),
     description: short,
@@ -104,7 +104,7 @@ const ResponseCriterion = z
     if (r.minimumAnsweredFraction === 0 && !r.essentialQuestionIds.length)
       ctx.addIssue({ code: "custom", message: "完整度规则需给出覆盖比例或必要题目。" });
   });
-export const ResponseCriteria = z
+const ResponseCriteria = z
   .object({ rationale: short, complete: ResponseCriterion, partial: ResponseCriterion.optional() })
   .strict()
   .superRefine((r, ctx) => {
@@ -303,7 +303,7 @@ export const CollectionNoteInput = z
     if (note.from !== null && note.until !== null && note.from > note.until)
       ctx.addIssue({ code: "custom", message: "结束时间应晚于开始时间。" });
   });
-export type CollectionNote = z.infer<typeof CollectionNoteInput> & {
+type CollectionNote = z.infer<typeof CollectionNoteInput> & {
   id: string;
   recordedAt: number;
 };

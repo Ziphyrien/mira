@@ -2,69 +2,69 @@
   "schemaVersion": 1,
   "source": {
     "repository": "https://github.com/earendil-works/pi.git",
-    "commit": "8efd314fa3d3232ce197d8d7a6a5660530b9d83e",
+    "commit": "ede2c9b468d8e061c557d16957513715e6d49cd6",
     "dirty": false
   },
   "packages": [
     {
       "name": "@earendil-works/chord",
-      "version": "1.3.0",
-      "tarball": "tarballs/earendil-works-chord-1.3.0-f400330256fc.tgz",
-      "integrity": "sha512-9AAzAlb8JR3Aa6AHKr6cqZyMAE8m1jJjmXcWRHsJx6pumCGI9Az0my7InKThV6wH9d3KdZ6pjh35IOscZPe1ag=="
+      "version": "1.4.0",
+      "tarball": "tarballs/earendil-works-chord-1.4.0-ab8c111b525f.tgz",
+      "integrity": "sha512-q4wRG1JfIcWvBcOxiyiIiVMY9MqHywd9ZGzHAGonvWdf+O5r05J6qQgw+fUeeihbE845VZGhUbXSOt2PxkMqEA=="
     },
     {
       "name": "@earendil-works/pi-agent-core",
-      "version": "1.3.0",
-      "tarball": "tarballs/earendil-works-pi-agent-core-1.3.0-da3be9c59b38.tgz",
-      "integrity": "sha512-2jvpxZs47PFD5mSQb/yK0pGHJ5yO7Nu22u9mFjHbSLRgu62vZ9rupimDSIp4arnqOadyv0AWvYHtCSpFoJV7ag=="
+      "version": "1.4.0",
+      "tarball": "tarballs/earendil-works-pi-agent-core-1.4.0-e49f5d321d70.tgz",
+      "integrity": "sha512-5J9dMh1wGTuonEXtG6dSN8UU2SyHRuH5aHwwF0Rwom8Kp6pSKMVM2lQf+McmvSC8b+EAq/BREfRn9QL3wyXmCg=="
     },
     {
       "name": "@earendil-works/pi-ai",
-      "version": "1.3.0",
-      "tarball": "tarballs/earendil-works-pi-ai-1.3.0-68bdfb780ceb.tgz",
-      "integrity": "sha512-aL37eAzrEvTf4HmnfQqzUlKS4Vd+Zb39S4CsxvSrvnjOmY1Ex9JIFcv8ZW0TDDDpyLYJiLalW7VFcveWfkJ8/Q=="
+      "version": "1.4.0",
+      "tarball": "tarballs/earendil-works-pi-ai-1.4.0-c2a6178fb1a5.tgz",
+      "integrity": "sha512-wqYXj7GlmAL0NvRLEGAfT9tILkaE6K3Tf/vSM9/vHE2EW6lP7z530S4Vqlwq6BneHOL+uunZ5hJ1DoltSksurQ=="
     },
     {
       "name": "@earendil-works/pi-codemode",
-      "version": "1.3.0",
-      "tarball": "tarballs/earendil-works-pi-codemode-1.3.0-d86f6d99bb0f.tgz",
-      "integrity": "sha512-2G9tmbsPhgzwfz7cmzJpbLSLqOx3eu22Gbzm+Wc3HqeZMjLQS4F3KfAabozVhv7uEjq3k2O1dZTHmhhWr2xbfQ=="
+      "version": "1.4.0",
+      "tarball": "tarballs/earendil-works-pi-codemode-1.4.0-12f87608bdc6.tgz",
+      "integrity": "sha512-Evh2CL3GpICFggFBqf26OOf7OIwS6q6Av1Ea0+gs6Fok9IGWqJ8wMc37Y6wP5BHxakHHoJO5laHh3uh316fAAA=="
     },
     {
       "name": "@earendil-works/pi-coding-agent",
-      "version": "1.3.0",
-      "tarball": "tarballs/earendil-works-pi-coding-agent-1.3.0-f9bb45925eb2.tgz",
-      "integrity": "sha512-+btFkl6ynfl8RpesZx7YQ3KtkN9b002iqH56dL7MN3lPsb80mQTi/3sHzcft7cKSYl+sfTUmJKjtlV/oX4gQuw=="
+      "version": "1.4.0",
+      "tarball": "tarballs/earendil-works-pi-coding-agent-1.4.0-ca939901b877.tgz",
+      "integrity": "sha512-ypOZAbh31gvYhTMCvhmfCz1NdZHGP7FvTkCgL5YiGzL9zFx1LQKr125qdntM07LpNml8Lh8DHTYsV/ajzHjBCA=="
     },
     {
       "name": "@earendil-works/pi-durable",
-      "version": "1.3.0",
-      "tarball": "tarballs/earendil-works-pi-durable-1.3.0-716742f7c82e.tgz",
-      "integrity": "sha512-cWdC98gu+mRw1owWKv4kzBNoi3cusu130WvPTOgsbJWexDgpUaWj2OllDPZ+vhZEBZHOGj6hfKZ/LhDTiB/LTw=="
+      "version": "1.4.0",
+      "tarball": "tarballs/earendil-works-pi-durable-1.4.0-4fc3b446a8a5.tgz",
+      "integrity": "sha512-T8O0RqilpEQav6I/Dg9isNBioYvDbg8IapSbbMF83G35bjqdfMD3tBpX5oMxyimqiYzJQkTOIYW7d2D4xIajig=="
     },
     {
       "name": "@earendil-works/pi-env",
-      "version": "1.3.0",
-      "tarball": "tarballs/earendil-works-pi-env-1.3.0-2008269161db.tgz",
-      "integrity": "sha512-IAgmkWHbmoeUtKucQ8Vk1LRQN6mNjYIWlu+gH4BaJW6TABhSj7nKqscDLaLFPdRUKPatizXOOepsUKl7pJpXYQ=="
+      "version": "1.4.0",
+      "tarball": "tarballs/earendil-works-pi-env-1.4.0-a5f69a34ba80.tgz",
+      "integrity": "sha512-pfaaNLqAhLWxGv+4YPyyJ4XA12YgBnwWxxnzbZ1h1rwOqqyhCbHMZrVq10X0FuJz1xDtyoXa4LuT6SeluVrlQg=="
     },
     {
       "name": "@earendil-works/pi-mcp",
-      "version": "1.3.0",
-      "tarball": "tarballs/earendil-works-pi-mcp-1.3.0-0e28d8b91573.tgz",
-      "integrity": "sha512-DijYuRVzsd4mWVpm6h20e5hT1MFbd5/VIROgo/y6WuB9c+2QnvS5raYFFMQXVRaH5kM5ajLGtU+ceA6HpDSOEA=="
+      "version": "1.4.0",
+      "tarball": "tarballs/earendil-works-pi-mcp-1.4.0-59064dfed8cc.tgz",
+      "integrity": "sha512-WQZN/tjMTud50/goGwmg5nHAXJ2Mc/l+iDxUdROCVxBwpQlIWKwQKJz/fCo6UYTNw/5c2q5hmjOJv+iU/Sbvjw=="
     },
     {
       "name": "@earendil-works/pi-telemetry",
-      "version": "1.3.0",
-      "tarball": "tarballs/earendil-works-pi-telemetry-1.3.0-111199afe697.tgz",
-      "integrity": "sha512-ERGZr+aXjNJzoUbB7ZzHVH3g5otzMHjHLs2Fyizm12By5X+gBEhod9cJXFOk13S7M8a29Am+Mq21zm73mRJFLg=="
+      "version": "1.4.0",
+      "tarball": "tarballs/earendil-works-pi-telemetry-1.4.0-30041b45df9e.tgz",
+      "integrity": "sha512-MAQbRd+eTSnhGjVynyIGE18NQDFDkztbeZkHIGcb8zqEpzf51qT1+kpI+oWiacWYN84baVXDg8YnqKW9Z9UX1A=="
     },
     {
       "name": "@earendil-works/pi-tui",
-      "version": "1.3.0",
-      "tarball": "tarballs/earendil-works-pi-tui-1.3.0-9071aa78b2c3.tgz",
-      "integrity": "sha512-kHGqeLLD3LbWPaqY3s+yiLyvOOdRsU0sM5h8CnyiCDl9GMH++/waeEgpV8rO1agIMXlzEs1asdz+/JHxIX0SEg=="
+      "version": "1.4.0",
+      "tarball": "tarballs/earendil-works-pi-tui-1.4.0-f6f935213bc0.tgz",
+      "integrity": "sha512-9vk1ITvAXqWzv3FmtMttljscrj54+DrhyrQDv7CwSkz6wL1GSsIWfNK6Q6HreqD7isaNAjH5PwtCtpz4miUOnQ=="
     }
   ],
   "artifactDirectory": "vendor/pi/.artifacts/main",
@@ -73,14 +73,14 @@
     "npm": "11.8.0",
     "platform": "win32",
     "arch": "x64",
-    "modelCatalogRevision": "sha256-ffa3e98626230f378f80200debb736c4a2238b5f2ba246a92cfc7d8e19604678",
+    "modelCatalogRevision": "sha256-7fe1b41feaf43a7aad4bc832e6b306c7ced56e6d41bbc724b74e91eeacff6edf",
     "dependencyLock": {
       "path": "scripts/pi-build/package-lock.json",
       "integrity": "sha512-IXbc4OOol1bN2HFN2lKOGhKjaCC44BzCOF+TLK8FI8GSAy8Ly68nTgaqNsD1HtGbcuY/Dl6kQNgjym/2r3YkZQ=="
     },
     "modelData": {
-      "path": "scripts/pi-model-data/2ee882183e9c.json.gz",
-      "integrity": "sha512-LuiCGD6cmoRDv2NFoSUaBU+f3u4klJytnWW3xFCd9zqA+ld2ZN0tZdbYP35Jrjc6PNoQTx/nY06oL7wb69+XHw=="
+      "path": "scripts/pi-model-data/1bb2c987d76c.json.gz",
+      "integrity": "sha512-G7LJh9dsnC2yat1U9qaaY1VgsVE4FU3R+3xvALYiuMPp2I3qZUu/9H3EgmLEtI3UlLkY3hT4CPuiA1l0gEvjHg=="
     }
   }
 }

@@ -2,6 +2,8 @@
 
 Pi is consumed as content-addressed local tarballs. `pi-packages.json` pins the upstream Git commit, exact archive filenames and SHA512 integrities, build tool versions, and the model-data snapshot needed to reproduce those bytes. Keep it together with `package.json`, `bun.lock`, `scripts/pi-build/package-lock.json`, and the model-data snapshot referenced by the manifest in version control. Tarballs and build directories stay ignored under `vendor/pi/.artifacts`.
 
+Pi 1.4 opens the existing `pi_` SQLite namespace and automatically migrates its task table to schema version 2, which supports sleeping tasks. The migration retains stored conversations, entries, and tasks; Mira's own tables remain in their separate namespace. Once a database has migrated, it must be opened with Pi 1.4 or later. Deployments using that database must therefore retain a compatible Pi version when rolling back application code.
+
 From the repository root, before the first install:
 
 ```sh

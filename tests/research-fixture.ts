@@ -71,7 +71,7 @@ const questionDefinitions: ResearchQuestion[] = [
   { ...base, id: "days", kind: "number", prompt: "上周远程工作了几天？", min: 0, max: 7 },
   { ...base, id: "context", kind: "text", prompt: "有什么情境能帮助我们理解你的工作体验？" },
 ];
-export const questions = questionDefinitions.map((q) => structuredClone(q));
+const questions = questionDefinitions.map((q) => structuredClone(q));
 export const plan: ResearchPlan = {
   title: "混合办公体验研究",
   estimatedMinutes: 10,

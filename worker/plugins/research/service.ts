@@ -22,13 +22,21 @@ import { recordState, observeSession } from "./observation";
 import { orderQuestions } from "../../../src/lib/contracts/question-graph";
 import { ResearchPresence } from "./presence";
 
+import { ResearchAnalyses } from "./analysis";
+import type { AnalyzeResearch } from "../../../src/lib/contracts/research-analysis";
+
 export class ResearchService {
+  private readonly analyses: ResearchAnalyses;
   private readonly presence: ResearchPresence;
   constructor(
     private readonly storage: AtomicStorage,
     private readonly agent: ResearchAgent,
   ) {
     this.presence = new ResearchPresence(storage);
+    this.analyses = new ResearchAnalyses(storage);
+    storage.sql.exec(
+      "CREATE TABLE IF NOT EXISTS research_management (id INTEGER PRIMARY KEY CHECK(id=1),token TEXT NOT NULL)",
+    );
     storage.sql.exec(
       "CREATE TABLE IF NOT EXISTS research_planning (id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL)",
     );
@@ -215,6 +223,8 @@ export class ResearchService {
       this.storage.sql.exec("DELETE FROM research_sessions");
       this.storage.sql.exec("DELETE FROM research_rates");
       this.storage.sql.exec("DELETE FROM research_planning");
+      this.analyses.clear();
+      this.storage.sql.exec("DELETE FROM research_management");
       this.storage.sql.exec("DELETE FROM research_meta");
     });
   }
@@ -364,11 +374,97 @@ export class ResearchService {
     return study;
   }
   close() {
+    this.expire();
+    return this.storage.transactionSync(() => {
+      const study = this.study();
+      if (study.status === "draft") throw new ResearchError(409, "请先发布研究。");
+      if (study.status === "closed") return study;
+      study.status = "closed";
+      study.closedAt = Date.now();
+      this.save(study);
+      this.queueAnalysis(study);
+      return study;
+    });
+  }
+  private queueAnalysis(study: ResearchStudy) {
+    const sessions = this.all(),
+      at = study.closedAt ?? Date.now();
+    return this.analyses.queue({
+      studyId: study.id,
+      version: study.version,
+      closedAt: at,
+      plan: structuredClone(study.plan),
+      results: summarizeStudy(study, sessions, at, this.presence.snapshots(at)),
+      texts: sessions.flatMap((s) =>
+        s.answers
+          .filter((a) => a.question.kind === "text" && typeof a.value === "string")
+          .map((a) => ({
+            questionId: a.question.id,
+            prompt: a.question.prompt,
+            source: a.question.source,
+            text: String(a.value),
+          })),
+      ),
+    });
+  }
+  generateAnalysis() {
+    this.expire();
+    return this.storage.transactionSync(() => {
+      const study = this.study();
+      if (study.status !== "closed") throw new ResearchError(409, "请先结束收集。");
+      if (!study.expiresAt || Date.now() >= study.expiresAt)
+        throw new ResearchError(410, "回答保存期限已到。");
+      return (
+        this.analyses.list().find((r) => r.closedAt === study.closedAt) ?? this.queueAnalysis(study)
+      );
+    });
+  }
+  reopen() {
+    this.expire();
     const study = this.study();
-    study.status = "closed";
-    study.closedAt ??= Date.now();
+    if (study.status !== "closed") throw new ResearchError(409, "当前研究尚未结束收集。");
+    if (!study.expiresAt || Date.now() >= study.expiresAt)
+      throw new ResearchError(410, "回答保存期限已到，无法继续收集。");
+    study.status = "published";
+    delete study.closedAt;
     this.save(study);
     return study;
+  }
+  analysisList() {
+    return this.analyses.list();
+  }
+  analysisPending() {
+    return this.analyses.pending();
+  }
+  retryAnalysis(id: string) {
+    this.expire();
+    return this.analyses.retry(id);
+  }
+  processAnalysis(analyze: AnalyzeResearch, signal?: AbortSignal) {
+    return this.analyses.process(analyze, signal);
+  }
+  managementShare() {
+    if (!this.planning()) this.study();
+    const row = this.storage.sql
+      .exec<{ token: string }>("SELECT token FROM research_management WHERE id=1")
+      .toArray()[0];
+    if (row) return row.token;
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    this.storage.sql.exec("INSERT INTO research_management VALUES(1,?)", token);
+    return token;
+  }
+  canManage(token: string) {
+    if (!/^[a-f0-9]{64}$/.test(token)) return false;
+    return (
+      this.storage.sql
+        .exec<{ token: string }>(
+          "SELECT token FROM research_management WHERE id=1 AND token=?",
+          token,
+        )
+        .toArray().length === 1
+    );
   }
   start(sessionId: string, rateKey: string, consent: unknown) {
     const accepted = z
@@ -655,8 +751,13 @@ export class ResearchService {
   }
   withdraw(id: string) {
     this.storage.transactionSync(() => {
+      if (
+        !this.storage.sql.exec("SELECT id FROM research_sessions WHERE id=?", id).toArray().length
+      )
+        return;
       this.storage.sql.exec("DELETE FROM research_sessions WHERE id=?", id);
       this.presence.remove(id);
+      this.analyses.clear();
     });
     return { withdrawn: true };
   }
@@ -702,6 +803,7 @@ export class ResearchService {
           throw new ResearchError(409, "此操作仅可删除未答题或全部预定题均跳过的记录。");
         ids.add(s.id);
       }
+      if (ids.size) this.analyses.clear();
       for (const id of ids) {
         this.storage.sql.exec("DELETE FROM research_sessions WHERE id=?", id);
         this.presence.remove(id);
@@ -727,6 +829,7 @@ export class ResearchService {
         codebook: study.plan.questions,
         observedAt,
         statistics: summarizeStudy(study, sessions, observedAt, presence),
+        analyses: this.analyses.list(),
         participants: sessions.map((s, index) => ({
           participant: index + 1,
           ...this.view(s, study),
@@ -760,6 +863,7 @@ export class ResearchService {
         this.presence.clear();
         this.storage.sql.exec("DELETE FROM research_sessions");
         this.storage.sql.exec("DELETE FROM research_rates");
+        this.analyses.clear();
         study.status = "closed";
         this.save(study);
       });

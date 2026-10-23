@@ -106,6 +106,19 @@ export function createProvider() {
         const result = structuredClone(state.revision?.plan ?? researchPlan);
         if (state.revision) result.title = "调整后的工作体验";
         chunks = [JSON.stringify(result)];
+      } else if (context.includes("You write a Chinese-language research data analysis")) {
+        chunks = [
+          JSON.stringify(
+            context.includes("Produce the final analysis")
+              ? {
+                  overview: "本轮数据显示了参与者已提供的工作体验。",
+                  sections: [{ title: "观察结果", text: "按本轮实际回答解释。" }],
+                  limitations: ["样本不能代表总体。"],
+                  nextSteps: ["结合研究问题核对原始回答。"],
+                }
+              : { summary: "参与者描述了工作体验。" },
+          ),
+        ];
       } else if (context.includes("You conduct a voluntary Chinese research interview")) {
         const last = input.messages.at(-1) as { content: string };
         const state = JSON.parse(last.content) as {

@@ -20,6 +20,28 @@ export function interviewCookie(id: string) {
 async function requireAdmin(event: RequestEvent) {
   if (!(await isAdministrator(event.cookies))) error(401, "请先在管理后台登录。");
 }
+export function managementCookie(id: string) {
+  return "mira_research_manage_" + id;
+}
+export async function requireStudyManagement(event: RequestEvent) {
+  const stub = research(event.params.id);
+  if (await isAdministrator(event.cookies)) return;
+  const token = event.cookies.get(managementCookie(event.params.id!));
+  if (!token || !(await stub.canManage(token)))
+    error(401, "请使用这项研究的管理链接，或登录管理后台。");
+}
+export const handleAnalysesGet: RequestHandler = async (event) => {
+  await requireStudyManagement(event);
+  return Response.json(researchData(await research(event.params.id).analyses()));
+};
+export const handleAnalysesPost: RequestHandler = async (event) => {
+  await requireStudyManagement(event);
+  const body = (await readJson(event.request, 1024)) as { id?: unknown; action?: unknown };
+  if (body?.action === "generate")
+    return Response.json(researchData(await research(event.params.id).generateAnalysis()));
+  if (typeof body?.id !== "string") error(400, "请选择要重试的分析。");
+  return Response.json(researchData(await research(event.params.id).retryAnalysis(body.id)));
+};
 function session(event: RequestEvent) {
   const token = event.cookies.get(interviewCookie(event.params.id!));
   if (!token || !/^[0-9a-f]{64}$/.test(token)) error(401, "请先阅读参与说明并开始访谈。");
@@ -58,11 +80,11 @@ export const handleStudiesPost: RequestHandler = async (event) => {
   return Response.json(pending, { status: 202 });
 };
 export const handleStudyGet: RequestHandler = async (event) => {
-  await requireAdmin(event);
+  await requireStudyManagement(event);
   return Response.json(researchData(await research(event.params.id).inspect()));
 };
 export const handleStudyPost: RequestHandler = async (event) => {
-  await requireAdmin(event);
+  await requireStudyManagement(event);
   const data = (await readJson(event.request, 512000)) as {
     action?: unknown;
     title?: unknown;
@@ -75,6 +97,12 @@ export const handleStudyPost: RequestHandler = async (event) => {
     note?: unknown;
   };
   const stub = research(event.params.id);
+  if (data?.action === "management-share")
+    return Response.json({
+      path:
+        "/research/" + event.params.id + "/access/" + researchData(await stub.managementShare()),
+    });
+  if (data?.action === "reopen") return Response.json(researchData(await stub.reopen()));
   if (data?.action === "share") {
     researchData(await stub.publicInfo());
     return Response.json({ path: "/r/" + (await directory().researchShare(event.params.id!)) });
@@ -100,13 +128,13 @@ export const handleStudyPost: RequestHandler = async (event) => {
   error(400, "未知操作。");
 };
 export const handleStudyDelete: RequestHandler = async (event) => {
-  await requireAdmin(event);
+  await requireStudyManagement(event);
   researchData(await research(event.params.id).remove());
   await directory().researchRemove(event.params.id!);
   return Response.json({ deleted: true });
 };
 export const handleExport: RequestHandler = async (event) => {
-  await requireAdmin(event);
+  await requireStudyManagement(event);
   const format = event.url.searchParams.get("format") === "csv" ? "csv" : "json";
   const text = researchData(await research(event.params.id).exportData(format));
   return new Response(text, {

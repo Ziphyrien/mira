@@ -2,7 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import type { ResearchPlanning, ResearchInspection } from '#lib/contracts/research.js';
   import { researchRequest } from './client';
-  let { initial, onready, onback, ondelete }: {initial:ResearchPlanning;onready:(ready:Extract<ResearchInspection,{status:'ready'}>)=>void;onback:()=>void;ondelete:()=>void}=$props();
+  let { initial, onready, onback, ondelete }: {initial:ResearchPlanning;onready:(ready:Extract<ResearchInspection,{status:'ready'}>)=>void;onback?:()=>void;ondelete:()=>void}=$props();
   let job=$state.raw(untrack(()=>initial));let failure=$state('');let retrying=$state(false);let answer=$state('');
   let refresh=()=>{};
   onMount(()=>{
@@ -18,7 +18,7 @@
   async function clarify(event:SubmitEvent){event.preventDefault();retrying=true;failure='';try{job=await researchRequest<ResearchPlanning>('/api/research/'+job.id,{action:'clarify',answer});answer='';refresh();}catch(e){failure=e instanceof Error?e.message:'请重试。';}finally{retrying=false;}}
   async function cancel(){retrying=true;failure='';try{onready(await researchRequest<Extract<ResearchInspection,{status:'ready'}>>('/api/research/'+job.id,{action:'cancel-refinement'}));}catch(e){failure=e instanceof Error?e.message:'请重试。';}finally{retrying=false;}}
 </script>
-<div class="flex items-center justify-between gap-3"><button class="btn btn-ghost btn-sm" onclick={onback}><span class="icon-[lucide--arrow-left] size-4" aria-hidden="true"></span>研究列表</button><button class="btn btn-ghost btn-sm" disabled={retrying} onclick={ondelete}><span class="icon-[lucide--trash-2] size-4" aria-hidden="true"></span>删除研究</button></div>
+<div class="flex items-center justify-between gap-3"><button class="btn btn-ghost btn-sm" hidden={!onback} onclick={onback}><span class="icon-[lucide--arrow-left] size-4" aria-hidden="true"></span>研究列表</button><button class="btn btn-ghost btn-sm" disabled={retrying} onclick={ondelete}><span class="icon-[lucide--trash-2] size-4" aria-hidden="true"></span>删除研究</button></div>
 <section class="mx-auto max-w-md space-y-5 py-20 text-center" aria-live="polite">
   {#if job.status==='clarifying'}
     <h1 class="text-xl font-medium">再了解一点背景</h1>

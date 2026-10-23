@@ -353,7 +353,7 @@ test("closed research rejects further participation while preserving existing pa
   await expect
     .poll(async () => (await (await request.get("/api/research/" + id)).json()).status)
     .toBe("ready");
-  expect((await request.get("/research/" + id)).status()).toBe(404);
+  expect((await request.get("/research/" + id)).status()).toBe(200);
   const outdated = await request.post("/api/research/public/" + id, {
     headers: { "X-Mira-Research-Protocol": "1" },
     data: { action: "start", eligible: true, consent: true },

@@ -34,6 +34,124 @@ function valueFor(q: (typeof plan.questions)[number]) {
   if (q.kind === "single" || q.kind === "select") return q.options[0].id;
   return q.min;
 }
+describe("collection analysis snapshots", () => {
+  const report = { overview: "本轮结果。", sections: [], limitations: [], nextSteps: [] };
+  it("keeps each close snapshot fixed across retries and reopened collection", async () => {
+    const { service } = await setup();
+    const published = service.publish();
+    service.start("a", "day", consent);
+    await service.answer("a", { questionId: "autonomy", value: 3 });
+    service.close();
+    service.close();
+    expect(service.analysisList()).toHaveLength(1);
+    await service.processAnalysis(async () => {
+      throw Error("临时失败");
+    });
+    const first = service.analysisList()[0];
+    expect(first.status).toBe("failed");
+    const reopened = service.reopen();
+    expect(reopened).toMatchObject({
+      status: "published",
+      version: published.version,
+      expiresAt: published.expiresAt,
+      plan: published.plan,
+    });
+    expect(reopened.closedAt).toBeUndefined();
+    await service.answer("a", { questionId: "burden", value: 2 });
+    service.retryAnalysis(first.id);
+    const snapshots: { answers: number; status: number; version: string }[] = [];
+    const analyze: Parameters<ResearchService["processAnalysis"]>[0] = async (snapshot) => {
+      snapshots.push({
+        answers: snapshot.results.answers,
+        status: snapshot.closedAt,
+        version: snapshot.version,
+      });
+      return { report, model: "fixture", cost: 0 };
+    };
+    await service.processAnalysis(analyze);
+    expect(snapshots).toEqual([{ answers: 1, status: first.closedAt, version: published.version }]);
+    service.close();
+    await service.processAnalysis(analyze);
+    expect(service.analysisList().map((r) => r.answers)).toEqual([2, 1]);
+    expect(snapshots.map((s) => s.answers)).toEqual([1, 2]);
+    expect(service.analysisList().every((r) => r.status === "ready")).toBe(true);
+  });
+  it("restores complete text snapshots after restart and reuses an existing close report", async () => {
+    const { service, db, agent } = await setup();
+    service.publish();
+    service.start("a", "day", consent);
+    const text = "开始。" + "保留完整回答。".repeat(600) + "结束。";
+    for (const question of plan.questions)
+      await service.answer("a", {
+        questionId: question.id,
+        value: question.kind === "text" ? text : valueFor(question),
+      });
+    expect(() => service.generateAnalysis()).toThrow("先结束收集");
+    service.close();
+    const initial = service.analysisList()[0];
+    expect(service.generateAnalysis().id).toBe(initial.id);
+    const restored = new ResearchService(db.storage, agent);
+    await restored.processAnalysis(async (snapshot) => {
+      expect(snapshot.texts).toEqual([
+        {
+          questionId: plan.questions[7].id,
+          prompt: plan.questions[7].prompt,
+          source: "core",
+          text,
+        },
+      ]);
+      return { report, model: "fixture", cost: 0 };
+    });
+    expect(restored.analysisList()[0].status).toBe("ready");
+    restored.withdraw("a");
+    expect(restored.analysisList()).toEqual([]);
+    const remaining = restored.generateAnalysis();
+    restored.withdraw("a");
+    expect(restored.analysisList().map((r) => r.id)).toEqual([remaining.id]);
+  });
+  it.each(["withdraw", "delete", "expire"] as const)(
+    "cannot restore analysis data after %s during generation",
+    async (action) => {
+      const { service } = await setup();
+      const study = service.publish();
+      service.start("a", "day", consent);
+      await service.answer("a", { questionId: "autonomy", value: 3 });
+      service.close();
+      const pending = Promise.withResolvers<{
+        report: typeof report;
+        model: string;
+        cost: number;
+      }>();
+      const processing = service.processAnalysis(() => pending.promise);
+      if (action === "withdraw") service.withdraw("a");
+      else if (action === "delete") service.remove();
+      else {
+        vi.spyOn(Date, "now").mockReturnValue(study.expiresAt! + 1);
+        service.expire();
+      }
+      pending.resolve({ report, model: "fixture", cost: 0 });
+      await processing;
+      expect(service.analysisList()).toEqual([]);
+    },
+  );
+  it("explains an empty collection without asking a model and refuses to reopen expired data", async () => {
+    const { service } = await setup();
+    const study = service.publish();
+    service.close();
+    const analyze = vi.fn();
+    await service.processAnalysis(analyze);
+    expect(service.analysisList()[0]).toMatchObject({
+      status: "ready",
+      sessions: 0,
+      answers: 0,
+      model: "descriptive",
+    });
+    expect(analyze).not.toHaveBeenCalled();
+    vi.spyOn(Date, "now").mockReturnValue(study.expiresAt! + 1);
+    expect(() => service.reopen()).toThrow("保存期限");
+    expect(service.analysisList()).toEqual([]);
+  });
+});
 describe("research collection boundary", () => {
   it("restores a queued plan after reopening storage and exposes the completed draft", async () => {
     const db = createTestScopePlatform();

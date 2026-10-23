@@ -23,7 +23,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   const response = forbidden ? new Response("Forbidden", { status: 403 }) : await resolve(event);
   const headers = new Headers(response.headers);
   headers.set("X-Content-Type-Options", "nosniff");
-  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set(
+    "Referrer-Policy",
+    event.url.pathname.startsWith("/research/") ? "no-referrer" : "strict-origin-when-cross-origin",
+  );
   headers.set("X-Frame-Options", "DENY");
   // Cover HTML and Kit data responses as well as API responses. Loads can also
   // set cache headers: copying the resolved response avoids setHeaders conflicts.

@@ -1,12 +1,14 @@
 import { DurableObject } from "cloudflare:workers";
 import { z } from "zod";
 import { ResearchService } from "./plugins/research/service";
+import { createResearchAnalyst } from "./plugins/research/analyst";
 import { createResearchAgent, ResearchError } from "./plugins/research/agent";
 import type { ResearchResult, ResearchInspection } from "../src/lib/contracts/research";
 
 /** One study owns its immutable instrument, response budget and participant records. */
 export class Research extends DurableObject<Env> {
   private planningAbort?: AbortController;
+  private analysisAbort?: AbortController;
   private readonly service = new ResearchService(
     this.ctx.storage,
     createResearchAgent(() => this.env.DIRECTORY.getByName("main").aiConfiguration()),
@@ -94,12 +96,51 @@ export class Research extends DurableObject<Env> {
     return this.run(() => this.service.addCollectionNote(input));
   }
   close() {
-    return this.run(() => this.service.close());
+    return this.run(async () => {
+      const result = this.service.close();
+      if (this.service.analysisPending()) await this.ctx.storage.setAlarm(Date.now() + 100);
+      return result;
+    });
+  }
+  reopen() {
+    return this.run(async () => {
+      const result = this.service.reopen();
+      if (this.service.analysisPending()) await this.ctx.storage.setAlarm(Date.now() + 100);
+      else if (result.expiresAt) await this.ctx.storage.setAlarm(result.expiresAt);
+      return result;
+    });
+  }
+  analyses() {
+    return this.run(() => {
+      this.service.expire();
+      return this.service.analysisList();
+    });
+  }
+  generateAnalysis() {
+    return this.run(async () => {
+      const result = this.service.generateAnalysis();
+      if (this.service.analysisPending()) await this.ctx.storage.setAlarm(Date.now() + 100);
+      return result;
+    });
+  }
+  retryAnalysis(id: string) {
+    return this.run(async () => {
+      const result = this.service.retryAnalysis(id);
+      await this.ctx.storage.setAlarm(Date.now() + 100);
+      return result;
+    });
+  }
+  managementShare() {
+    return this.run(() => this.service.managementShare());
+  }
+  canManage(token: string) {
+    return this.service.canManage(token);
   }
   remove() {
     return this.run(async () => {
       this.service.remove();
       this.planningAbort?.abort();
+      this.analysisAbort?.abort();
       await this.ctx.storage.deleteAlarm();
       return { deleted: true };
     });
@@ -132,7 +173,11 @@ export class Research extends DurableObject<Env> {
     });
   }
   withdraw(id: string) {
-    return this.run(() => this.service.withdraw(id));
+    return this.run(() => {
+      const result = this.service.withdraw(id);
+      this.analysisAbort?.abort();
+      return result;
+    });
   }
   removeEmptyResponses(targets: unknown) {
     return this.run(() => this.service.removeEmptyResponses(targets));
@@ -167,7 +212,21 @@ export class Research extends DurableObject<Env> {
       return;
     }
     if (this.service.planning()) return;
+    this.service.expire();
+    if (this.service.analysisPending()) {
+      const controller = new AbortController();
+      this.analysisAbort = controller;
+      try {
+        await this.service.processAnalysis(
+          createResearchAnalyst(() => this.env.DIRECTORY.getByName("main").aiConfiguration()),
+          controller.signal,
+        );
+      } finally {
+        if (this.analysisAbort === controller) this.analysisAbort = undefined;
+      }
+    }
     const at = this.service.expire();
-    if (at && at > Date.now()) await this.ctx.storage.setAlarm(at);
+    if (this.service.analysisPending()) await this.ctx.storage.setAlarm(Date.now() + 100);
+    else if (at && at > Date.now()) await this.ctx.storage.setAlarm(at);
   }
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
+  import {persistResearchDraft} from './draft.svelte';
   import { Tabs, Checkbox } from 'bits-ui';
   import Modal from '#lib/ui/Modal.svelte';
   import Disclosure from '#lib/ui/Disclosure.svelte';
@@ -7,8 +8,9 @@
   import PlanDetails from './PlanDetails.svelte';
   import Dropdown from '#lib/ui/Dropdown.svelte';
   import type { ResearchPlan, ResearchQuestion } from '#lib/contracts/research.js';
-  let { initial, questionId, readonly = false, onsave, onclose }: { initial: ResearchPlan; questionId?: string; readonly?: boolean; onsave: (plan: ResearchPlan) => Promise<void>; onclose: () => void } = $props();
+  let { initial, questionId, readonly = false, onsave, onclose, draftScope, draftVersion }: { draftScope:string;draftVersion:string; initial: ResearchPlan; questionId?: string; readonly?: boolean; onsave: (plan: ResearchPlan) => Promise<void>; onclose: () => void } = $props();
   let plan = $state(untrack(() => structuredClone(initial)));
+  const draft=persistResearchDraft({scope:untrack(()=>draftScope),name:'plan',context:untrack(()=>draftVersion+JSON.stringify(initial)),initial:untrack(()=>structuredClone(initial)),read:()=>plan,restore:value=>{if(!readonly)plan=value;},enabled:()=>!readonly});
   const question = $derived(plan.questions.find(q => q.id === questionId));
   const preceding = $derived.by(()=>{if(!question)return [];return plan.followupPolicy.coreOrder==='adaptive'?plan.questions.filter(q=>q.id!==question.id):plan.questions.slice(0,plan.questions.indexOf(question));});
   type Condition = ResearchQuestion['applicability']['all'][number];
@@ -31,10 +33,11 @@
   let editing=$state(untrack(()=>!questionId&&!readonly));
   let busy = $state(false);
   let failure = $state('');
-  async function save(event: SubmitEvent) { event.preventDefault(); busy = true; failure = ''; try { await onsave($state.snapshot(plan)); onclose(); } catch (e) { failure = e instanceof Error ? e.message : '请重试。'; } finally { busy = false; } }
+  async function save(event: SubmitEvent) { event.preventDefault(); busy = true; failure = ''; try { await onsave($state.snapshot(plan)); await draft.clear(); onclose(); } catch (e) { failure = e instanceof Error ? e.message : '请重试。'; } finally { busy = false; } }
 </script>
 
 <Modal open={true} onOpenChange={open => { if (!open && !busy) onclose(); }} title={question ? '题目详情' : '研究方案'} closeButton="icon" class="max-w-xl" placement="bottom">
+  {#if !readonly&&draft.restored}<p class="mb-4 flex items-center justify-between text-xs text-base-content/55">已恢复本地草稿<button type="button" class="btn btn-ghost btn-xs" disabled={busy} onclick={draft.discard}>放弃草稿</button></p>{/if}
   {#if readonly || (question && !editing)}
     <PlanDetails {plan} {question} />
     {#if !readonly}<div class="modal-action"><button type="button" class="btn btn-primary btn-sm" onclick={()=>editing=true}><span class="icon-[lucide--pencil] size-4" aria-hidden="true"></span>编辑题目</button></div>{/if}

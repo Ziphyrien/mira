@@ -3,6 +3,7 @@ export class ResearchRequestError extends Error {
   constructor(
     message: string,
     readonly reloadRequired = false,
+    readonly status?:number,
   ) {
     super(message);
   }
@@ -35,6 +36,7 @@ export async function researchRequest<T>(
         ? result.message
         : "请求暂未完成，请重试。",
       response.headers.get("X-Mira-Research-Reload") === "1",
+      response.status,
     );
   return result as T;
 }

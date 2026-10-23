@@ -20,6 +20,21 @@ export function interviewCookie(id: string) {
 async function requireAdmin(event: RequestEvent) {
   if (!(await isAdministrator(event.cookies))) error(401, "请先在管理后台登录。");
 }
+export async function researchDraftNamespace(event: RequestEvent) {
+  let identity: string;
+  if (await isAdministrator(event.cookies)) identity = "administrator:" + adminToken();
+  else {
+    await requireStudyManagement(event);
+    identity =
+      "study:" + event.params.id + ":" + event.cookies.get(managementCookie(event.params.id!));
+  }
+  // Domain-separated identifier: never a credential accepted by an API.
+  const bytes = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode("mira:research:local-drafts:v1:" + identity),
+  );
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 export function managementCookie(id: string) {
   return "mira_research_manage_" + id;
 }

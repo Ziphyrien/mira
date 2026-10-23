@@ -1,28 +1,24 @@
 <script lang="ts">
-  import { untrack, onMount } from 'svelte';
-  import {readDraft,saveDraft} from './drafts';
+  import { untrack } from 'svelte';
+  import {legacyAnswer} from './drafts';
+  import {persistResearchDraft} from './draft.svelte';
   import { Checkbox, RadioGroup } from 'bits-ui';
   import Modal from '#lib/ui/Modal.svelte';
   import Dropdown from '#lib/ui/Dropdown.svelte';
   import type { InterviewQuestion, AnswerValue } from '#lib/contracts/research.js';
-  let { question: q, disabled = false, initial = null, submitLabel = '继续', draftKey, onanswer }: { question: InterviewQuestion; disabled?: boolean; initial?: AnswerValue; submitLabel?: string; draftKey?:string; onanswer: (value: AnswerValue, nonresponse?: string) => void } = $props();
+  let { question: q, disabled = false, initial = null, submitLabel = '继续', draftKey, draftScope, draftName, onanswer }: { draftScope?:string;draftName?:string; question: InterviewQuestion; disabled?: boolean; initial?: AnswerValue; submitLabel?: string; draftKey?:string; onanswer: (value: AnswerValue, nonresponse?: string) => void } = $props();
   let text = $state(untrack(()=>typeof initial==='string'?initial:''));
   let selected = $state(untrack(()=>typeof initial==='string'?initial:''));
   let multiple = $state<string[]>(untrack(()=>Array.isArray(initial)?[...initial]:[]));
   let number = $state<number | undefined>(untrack(()=>typeof initial==='number'?initial:undefined));
   let touched = $state(untrack(()=>typeof initial==='number'));
-  let draftReady=$state(false);
-  onMount(()=>{
-    const saved=draftKey?readDraft(draftKey):undefined;
-    if(saved!==undefined){
-      if(q.kind==='text'&&typeof saved==='string')text=saved;
-      else if(q.kind==='multiple'&&Array.isArray(saved))multiple=saved.filter(id=>q.options.some(o=>o.id===id));
-      else if(['single','select'].includes(q.kind)&&typeof saved==='string'&&q.options.some(o=>o.id===saved))selected=saved;
-      else if(typeof saved==='number'&&Number.isFinite(saved)&&saved>=q.min&&saved<=q.max){number=saved;touched=true;}
-    }
-    draftReady=true;
-  });
-  $effect(()=>{if(draftReady&&draftKey&&!disabled)saveDraft(draftKey,value);});
+  function draftValue():AnswerValue{if(q.kind==='text')return text;if(q.kind==='multiple')return multiple;if(['single','select'].includes(q.kind))return selected;return number??null;}
+  persistResearchDraft<{value:AnswerValue}>({scope:untrack(()=>draftScope??''),name:untrack(()=>draftName??''),context:untrack(()=>JSON.stringify({q,initial})),initial:{value:untrack(draftValue)},enabled:()=>Boolean(draftScope)&&!disabled,read:()=>({value:draftValue()}),legacy:()=>draftKey?legacyAnswer(draftKey):undefined,restore:({value:saved})=>{
+    if(q.kind==='text'&&typeof saved==='string')text=saved;
+    else if(q.kind==='multiple'&&Array.isArray(saved))multiple=saved.filter(id=>q.options.some(o=>o.id===id));
+    else if(['single','select'].includes(q.kind)&&typeof saved==='string'&&q.options.some(o=>o.id===saved))selected=saved;
+    else if(typeof saved==='number'&&Number.isFinite(saved)&&saved>=q.min&&saved<=q.max){number=saved;touched=true;}
+  }});
   let pendingNonresponse = $state<string | null>(null);
   function chooseNonresponse(id:string) {
     let hasInput=touched;

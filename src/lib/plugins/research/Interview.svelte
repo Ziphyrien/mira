@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { untrack,onMount } from 'svelte';
   import { Checkbox } from 'bits-ui';
   import Modal from '#lib/ui/Modal.svelte';
   import Disclosure from '#lib/ui/Disclosure.svelte';
@@ -7,7 +7,7 @@
   import { researchRequest, ResearchRequestError } from './client';
   import QuestionInput from './QuestionInput.svelte';
   import {trackPresence} from './presence';
-  import {clearDraft,clearDrafts} from './drafts';
+  import {clearDraft,clearDrafts,participantDraftScope} from './drafts';
   let { study, initial }: { study: PublicStudy; initial: InterviewView | null } = $props();
   let interview = $state.raw<InterviewView | null>(untrack(() => initial));
   let consent = $state(false);
@@ -18,9 +18,11 @@
   let reloadRequired=$state(false);
   let withdrawn = $state(false);
   let dialog = $state<'info' | 'withdraw' | 'finish' | null>(null);
+  const draftScope=$derived(interview?participantDraftScope(study.id,interview.draftKey):null);
   const endpoint = $derived('/api/research/public/' + study.id);
   const activeParticipation=$derived(study.available&&interview?.status==='active'?interview.draftKey:null);
   $effect(()=>{if(activeParticipation)return trackPresence(endpoint);});
+  onMount(()=>{if(!initial)return;const scope=participantDraftScope(study.id,initial.draftKey);for(const answer of initial.answers)void clearDraft(scope+'/answer:'+answer.question.id);if(initial.status==='complete')void clearDrafts(scope,initial.draftKey);});
   function display(a: InterviewAnswer) {
     if (a.value === null) return a.nonresponse?.label ?? '未回答';
     if (Array.isArray(a.value)) return a.value.map(v => a.question.options.find(o => o.id === v)?.label ?? v).join('、');
@@ -28,14 +30,14 @@
   }
   async function act(body: unknown) {
     busy = true; failure = '';reloadRequired=false;
-    try { interview = await researchRequest<InterviewView>(endpoint, body); dialog = null; editing = null; }
+    try { const next=await researchRequest<InterviewView>(endpoint, body);if(interview&&draftScope){const action=(body as {action?:string}).action;if(action==='revise'||action==='finish')await clearDrafts(draftScope,interview.draftKey);else if(action==='answer'&&interview.current)await clearDraft(draftScope+'/answer:'+interview.current.id);}interview=next; dialog = null; editing = null; }
     catch (e) { failure = e instanceof Error ? e.message : '请重试。'; reloadRequired=e instanceof ResearchRequestError&&e.reloadRequired; }
     finally { busy = false; }
   }
-  async function answer(value: AnswerValue, nonresponse?:string) { if (interview?.current){const key=interview.draftKey+":"+interview.current.id;await act({ action: 'answer', answer: { questionId: interview.current.id, value, nonresponse } });if(!failure)clearDraft(key);} }
+  async function answer(value: AnswerValue, nonresponse?:string) { if (interview?.current)await act({ action: 'answer', answer: { questionId: interview.current.id, value, nonresponse } }); }
   async function withdraw() {
     busy = true; failure = '';
-    try { await researchRequest(endpoint, undefined, 'DELETE'); if(interview)clearDrafts(interview.draftKey); interview = null; withdrawn = true; dialog = null; }
+    try { await researchRequest(endpoint, undefined, 'DELETE'); if(interview&&draftScope)await clearDrafts(draftScope,interview.draftKey); interview = null; withdrawn = true; dialog = null; }
     catch (e) { failure = e instanceof Error ? e.message : '请重试。'; }
     finally { busy = false; }
   }
@@ -67,14 +69,14 @@
     <section class="grow py-4 sm:py-8" aria-busy={busy}>
       {#if editing && study.available}
         <button class="btn btn-ghost btn-sm mb-4" disabled={busy} onclick={()=>editing=null}>取消修改</button>
-        {#key editing.question.id}<QuestionInput question={editing.question} initial={editing.value} submitLabel="保存修改" disabled={busy} onanswer={(value,nonresponse)=>act({action:"revise",answer:{questionId:editing!.question.id,value,nonresponse}})} />{/key}
+        {#key editing.question.id}<QuestionInput question={editing.question} initial={editing.value} draftScope={draftScope??undefined} draftName={'revision:'+editing.question.id} submitLabel="保存修改" disabled={busy} onanswer={(value,nonresponse)=>act({action:"revise",answer:{questionId:editing!.question.id,value,nonresponse}})} />{/key}
       {:else if interview.paceCheck && study.available}
         <div class="space-y-6"><h2 class="text-xl font-medium">接下来，你想怎样继续？</h2><div class="flex flex-wrap gap-3"><button class="btn btn-primary" disabled={busy} onclick={() => act({ action: 'resume' })}>继续访谈</button><button class="btn" disabled={busy} onclick={() => act({ action: 'finish' })}>今天先到这里</button></div></div>
       {:else if interview.processing && study.available}
         <div class="flex items-center gap-3" role="status" aria-label="正在准备下一题"><span class="loading loading-spinner loading-sm" aria-hidden="true"></span><button class="btn btn-ghost btn-sm" disabled={busy} onclick={async()=>{try{interview=await researchRequest<InterviewView>(endpoint);}catch(e){failure=e instanceof Error?e.message:'请重试。';}}}>查看进度</button></div>
       {:else if interview.current && study.available}
         {#if interview.answers.length}<p class="text-base-content/60 mb-6 text-sm" aria-live="polite">{interview.message}</p>{/if}
-        {#key interview.current.id}<QuestionInput question={interview.current} draftKey={interview.draftKey+":"+interview.current.id} disabled={busy} onanswer={answer} />{/key}
+        {#key interview.current.id}<QuestionInput question={interview.current} draftScope={draftScope??undefined} draftName={'answer:'+interview.current.id} draftKey={interview.draftKey+":"+interview.current.id} disabled={busy} onanswer={answer} />{/key}
       {:else if interview.status === 'complete'}
         <div class="space-y-4 py-8 text-center"><span class="icon-[lucide--check] text-success mx-auto block size-10" aria-hidden="true"></span><h2 class="text-xl font-medium">访谈已结束</h2><p class="text-base-content/60 text-sm">{interview.message}</p></div>
       {:else}<p class="text-base-content/60">收集已结束</p>{/if}

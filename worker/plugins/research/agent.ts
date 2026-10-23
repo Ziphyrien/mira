@@ -142,7 +142,7 @@ export function createResearchAgent(configuration: () => Promise<AiConfiguration
     const schema = JSON.stringify(z.toJSONSchema(shape));
     let cost = 0;
     let validationFeedback: { path: string; requirement: string }[] = [];
-    const signal = requestSignal(interview ? 45000 : 720000, cancellation);
+    const signal = interview ? requestSignal(45000, cancellation) : cancellation;
     for (let attempt = 0; attempt < (interview ? 1 : 2); attempt++) {
       const startedAt = Date.now();
       const reply = await models.completeSimple(
@@ -246,7 +246,7 @@ export function createResearchAgent(configuration: () => Promise<AiConfiguration
   return {
     async plan(brief, studyId, cancellation, context) {
       const config = await configuration();
-      const signal = requestSignal(720000, cancellation);
+      const signal = cancellation ?? new AbortController().signal;
       const sources: ResearchSource[] = structuredClone(context?.sources ?? []);
       const notes: string[] = [];
       let cost = 0;

@@ -38,6 +38,47 @@ const TARGETS: Targets = { chrome: 92 << 16 };
 /** True on engines that need the fallback: no `:has()`, therefore no `@layer`. */
 const LEGACY_GUARD = "not selector(:has(*))";
 
+/**
+ * Independent transform properties (`translate`, `rotate`, `scale`) shipped in
+ * Chrome 104. Tailwind and daisyUI use them heavily, and Chrome 92 ignores them
+ * outright — a dialog centred with `-translate-x-1/2` lands in the corner, and a
+ * checkbox tick rotated with `rotate: 45deg` stays upright.
+ *
+ * They must not be collapsed into one `transform` per rule: the properties
+ * cascade independently, and a checked-state rule that sets only `translate`
+ * still keeps the base rule's `rotate`. So each declaration is mirrored into a
+ * custom property (which cascades the same way) and every participating rule
+ * gains the same `transform` expression reading those properties. Whichever
+ * rule wins the cascade then composes whatever values the cascade produced.
+ */
+const TRANSFORM_PROPERTY = "transform";
+
+function transformExpression(): string {
+  return (
+    `translate(var(--mira-translate, 0)) ` +
+    `rotate(var(--mira-rotate, 0deg)) ` +
+    `scale(var(--mira-scale, 1))`
+  );
+}
+
+/** Mirror `translate`/`rotate`/`scale` into custom properties and consume them. */
+function addTransformFallbacks(root: Root): number {
+  let added = 0;
+  root.walkRules((rule: Rule) => {
+    const mirrored: Declaration[] = [];
+    rule.walkDecls((declaration: Declaration) => {
+      if (declaration.prop === "translate") mirrored.push(declaration.clone({ prop: "--mira-translate" }));
+      else if (declaration.prop === "rotate") mirrored.push(declaration.clone({ prop: "--mira-rotate" }));
+      else if (declaration.prop === "scale") mirrored.push(declaration.clone({ prop: "--mira-scale" }));
+    });
+    if (mirrored.length === 0) return;
+    for (const declaration of mirrored) rule.append(declaration);
+    rule.append(postcss.decl({ prop: TRANSFORM_PROPERTY, value: transformExpression() }));
+    added += 1;
+  });
+  return added;
+}
+
 const MODERN_COLOR = /\b(?:oklch|oklab|lab|lch|color-mix)\(/;
 
 /** Any colour form a `--color-*` palette entry can arrive in after lowering. */
@@ -201,6 +242,10 @@ function legacyCopy(root: Root): Root {
     if (kept.length === 0) rule.remove();
     else rule.selector = kept.join(", ");
   });
+
+  // `translate`/`rotate`/`scale` are ignored by Chrome 92; fold them into
+  // `transform` so dialogs stay centred and checkbox ticks stay rotated.
+  addTransformFallbacks(copy);
 
   copy.walkDecls((declaration: Declaration) => {
     if (declaration.value.includes("color-mix(")) {

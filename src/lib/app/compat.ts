@@ -114,4 +114,12 @@ if (typeof AbortSignal !== "undefined") {
   }
 }
 
+/** AbortSignal.prototype.throwIfAborted shipped in Chrome 100. */
+if (typeof AbortSignal !== "undefined" && typeof AbortSignal.prototype.throwIfAborted !== "function") {
+  define(AbortSignal.prototype, "throwIfAborted", function (this: AbortSignal): void {
+    if (!this.aborted) return;
+    throw this.reason ?? new DOMException("signal is aborted without reason", "AbortError");
+  });
+}
+
 export {};

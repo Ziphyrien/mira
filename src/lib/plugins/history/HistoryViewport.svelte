@@ -179,7 +179,7 @@
       if (list) writtenTop = list.scrollTop;
       node.animate(
         [
-          { backgroundColor: "color-mix(in oklab, var(--color-primary) 15%, transparent)" },
+          { backgroundColor: "var(--tint-primary)" },
           { backgroundColor: "transparent" },
         ],
         1600,

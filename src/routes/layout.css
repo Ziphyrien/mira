@@ -78,6 +78,25 @@
     "Noto Sans SC", sans-serif;
 }
 
+/* Translucent theme tints.
+   The fallback is an sRGB approximation so Chrome 92 (which cannot parse
+   color-mix) still paints them; engines that understand color-mix override the
+   variables with the exact original expression, so nothing changes there.
+   --color-*-rgb is generated from the palette by scripts/chrome92-css.ts. */
+:root {
+  --tint-primary: rgb(var(--color-primary-rgb) / 15%);
+  --tint-content-30: rgb(var(--color-base-content-rgb) / 30%);
+  --tint-content-75: rgb(var(--color-base-content-rgb) / 75%);
+}
+
+@supports (color: color-mix(in oklab, red 50%, transparent)) {
+  :root {
+    --tint-primary: color-mix(in oklab, var(--color-primary) 15%, transparent);
+    --tint-content-30: color-mix(in oklab, var(--color-base-content) 30%, transparent);
+    --tint-content-75: color-mix(in oklab, var(--color-base-content) 75%, transparent);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

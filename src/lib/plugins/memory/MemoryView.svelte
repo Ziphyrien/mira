@@ -217,11 +217,7 @@
     padding-block: 0.25rem;
   }
   .memory-control:hover + .memory-children {
-    border-inline-start-color: color-mix(
-      in oklab,
-      var(--color-base-content) 30%,
-      transparent
-    );
+    border-inline-start-color: var(--tint-content-30);
   }
   .memory-original {
     margin-top: 0.25rem;

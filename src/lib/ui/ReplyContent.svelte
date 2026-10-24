@@ -203,7 +203,7 @@
       blockquote {
         border-inline-start: 3px solid var(--color-base-300);
         padding-inline-start: 0.875em;
-        color: color-mix(in oklab, currentColor 75%, transparent);
+        color: var(--tint-content-75);
       }
       table {
         border-collapse: collapse;

@@ -40,6 +40,11 @@ const COLOR_VALUE =
   /^(?:#[0-9a-f]{3,8}|rgba?\(|hsla?\(|oklch\(|oklab\(|lab\(|lch\(|color\()/i;
 const THEME_MIX =
   /color-mix\(\s*in\s+[a-z0-9-]+\s*,\s*var\((--color-[a-z0-9-]+)\)\s+([\d.]+%)\s*,\s*(?:transparent|#0000)\s*\)/gi;
+const COMPONENT_SOFT_MIX =
+  /color-mix\(\s*in\s+[a-z0-9-]+\s*,\s*var\(--(badge|alert)-color\s*,\s*var\((--color-[a-z0-9-]+)\)\)\s+([\d.]+%)\s*,\s*var\(--color-base-100\)\s*\)/gi;
+const CURRENT_COLOR_MIX =
+  /color-mix\(\s*in\s+[a-z0-9-]+\s*,\s*currentcolor\s+([\d.]+%)\s*,\s*(?:transparent|#0000)\s*\)/gi;
+const COMPONENT_COLOR_PROP = /^--(badge|alert|btn|input)-color$/;
 const DYNAMIC_WHITE_OKLCH =
   /oklch\(\s*(?:100%|1)\s+0(?:\.0+)?\s+0(?:\.0+)?\s*\/\s*([^)]+)\)/gi;
 const DYNAMIC_BLACK_OKLCH =
@@ -144,6 +149,16 @@ function splitSpaceTokens(value: string): string[] {
 function addRgbTriplets(root: Root): number {
   let added = 0;
   root.walkDecls((declaration) => {
+    if (COMPONENT_COLOR_PROP.test(declaration.prop)) {
+      const token = /^var\((--color-[a-z0-9-]+)\)$/.exec(declaration.value.trim())?.[1];
+      if (!token) return;
+      const rgbProp = `${declaration.prop}-rgb`;
+      const sibling = declaration.next();
+      if (sibling?.type === "decl" && sibling.prop === rgbProp) return;
+      declaration.cloneAfter({ prop: rgbProp, value: `var(${token}-rgb)` });
+      added += 1;
+      return;
+    }
     if (!declaration.prop.startsWith("--color-") || declaration.prop.endsWith("-rgb")) return;
     if (!COLOR_VALUE.test(declaration.value)) return;
     const triplet = channels(declaration.value);
@@ -409,6 +424,17 @@ function legacyCopy(root: Root): Root {
       value = value.replace(
         THEME_MIX,
         (_match, name: string, percent: string) => `rgb(var(${name}-rgb) / ${percent})`,
+      );
+      COMPONENT_SOFT_MIX.lastIndex = 0;
+      value = value.replace(
+        COMPONENT_SOFT_MIX,
+        (_match, kind: string, fallback: string, percent: string) =>
+          `rgb(var(--${kind}-color-rgb, var(${fallback}-rgb)) / ${percent})`,
+      );
+      CURRENT_COLOR_MIX.lastIndex = 0;
+      value = value.replace(
+        CURRENT_COLOR_MIX,
+        (_match, percent: string) => `rgb(var(--color-base-content-rgb) / ${percent})`,
       );
       if (value.includes("color-mix(")) {
         declaration.remove();

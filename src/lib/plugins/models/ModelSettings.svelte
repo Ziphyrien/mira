@@ -16,6 +16,12 @@
   let chat = $state("");
   let memory = $state("");
   let keys = $state({ radius: "", deepseek: "", mimo: "", tavily: "" });
+  let unlocked = $state({
+    radius: false,
+    deepseek: false,
+    mimo: false,
+    tavily: false,
+  });
   let clear = $state({
     radius: false,
     deepseek: false,
@@ -37,17 +43,24 @@
     { id: "memory", label: "记忆压缩模型", value: memory },
   ]);
 
-  const modelOptions = $derived(AI_PROVIDERS.flatMap(provider =>
-    (config?.catalog ?? []).filter(model => model.provider === provider.id).map(model => ({
-      id: modelKey(model), label: `${model.name} · ${model.modelId}`, group: provider.name,
-    }))
-  ));
+  const modelOptions = $derived(
+    AI_PROVIDERS.flatMap((provider) =>
+      (config?.catalog ?? [])
+        .filter((model) => model.provider === provider.id)
+        .map((model) => ({
+          id: modelKey(model),
+          label: `${model.name} · ${model.modelId}`,
+          group: provider.name,
+        })),
+    ),
+  );
 
   function apply(value: AiAdminState) {
     config = value;
     chat = modelKey(value.chat);
     memory = modelKey(value.memory);
     keys = { radius: "", deepseek: "", mimo: "", tavily: "" };
+    unlocked = { radius: false, deepseek: false, mimo: false, tavily: false };
     clear = { radius: false, deepseek: false, mimo: false, tavily: false };
   }
 
@@ -136,57 +149,32 @@
   }
 </script>
 
-<section
-  class="card border-base-300 mb-6 border"
-  aria-labelledby="model-settings-title"
->
-  <form class="card-body gap-5" onsubmit={save}>
-    <div class="flex items-center justify-between gap-3">
-      <h2 id="model-settings-title" class="text-lg font-semibold">模型设置</h2>
-      <button
-        type="button"
-        class="btn btn-ghost btn-sm"
-        onclick={load}
-        disabled={saving}
-      >
-        刷新列表
-      </button>
-    </div>
+<section aria-labelledby="model-settings-title" class="space-y-4">
+  <div class="flex items-center justify-between gap-3">
+    <h2 id="model-settings-title" class="text-lg font-semibold">模型设置</h2>
+    <button
+      type="button"
+      class="btn btn-ghost btn-sm"
+      onclick={load}
+      disabled={saving}
+    >
+      <span class="icon-[lucide--refresh-cw] size-3.5" aria-hidden="true"></span>
+      刷新列表
+    </button>
+  </div>
+
+  <form
+    class="border-base-300 space-y-6 rounded-box border p-5 sm:p-6"
+    onsubmit={save}
+  >
     {#if config}
-      <div class="grid gap-4 sm:grid-cols-2">
-        {#each KEY_PROVIDERS as provider (provider.id)}
-          <div>
-            <label class="label" for={`key-${provider.id}`}>
-              {provider.name} API Key
-            </label>
-            <input
-              id={`key-${provider.id}`}
-              class="input w-full"
-              type="password"
-              autocomplete="off"
-              spellcheck="false"
-              bind:value={keys[provider.id]}
-              disabled={saving || clear[provider.id]}
-              placeholder={config.keys[provider.id]
-                ? "已设置，留空保留"
-                : "尚未设置"}
-            />
-            {#if config.keys[provider.id]}
-              <label class="label mt-2 justify-start gap-2 text-sm">
-                <Checkbox.Root class="checkbox checkbox-xs" bind:checked={clear[provider.id]} disabled={saving} aria-label={"删除已保存的 " + provider.name + " Key"} />
-                删除已保存的 Key
-              </label>
-            {/if}
-          </div>
-        {/each}
-      </div>
       <div class="grid gap-4 sm:grid-cols-2">
         {#each choices as choice (choice.id)}
           {@const selected = config.catalog.find(
             (model) => modelKey(model) === choice.value,
           )}
-          <div>
-            <label class="label" for={`model-${choice.id}`}>
+          <div class="space-y-1.5">
+            <label class="label text-sm font-medium" for={`model-${choice.id}`}>
               {choice.label}
             </label>
             <Dropdown
@@ -202,43 +190,102 @@
               disabled={saving}
               required
             />
-            {#if selected}<p class="text-base-content/60 mt-2 text-xs">
+            {#if selected}
+              <p class="text-base-content/55 text-xs">
                 默认思考：{THINKING.find(
                   (level) => level.id === selected.highest,
                 )?.label}
-              </p>{/if}
+              </p>
+            {/if}
           </div>
         {/each}
       </div>
-      <div class="flex items-center gap-3">
+
+      <div class="border-base-300 border-t pt-5">
+        <div class="mb-3 text-xs font-medium text-base-content/60">
+          服务商密钥
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          {#each KEY_PROVIDERS as provider (provider.id)}
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <label class="label text-sm font-medium" for={`key-${provider.id}`}>
+                  {provider.name} API Key
+                </label>
+                {#if config.keys[provider.id]}
+                  <label class="text-base-content/60 flex cursor-pointer items-center gap-1.5 text-xs">
+                    <Checkbox.Root
+                      class="checkbox checkbox-xs"
+                      bind:checked={clear[provider.id]}
+                      disabled={saving}
+                      aria-label={"删除已保存的 " + provider.name + " Key"}
+                    />
+                    删除已保存的 Key
+                  </label>
+                {/if}
+              </div>
+              <input
+                id={`key-${provider.id}`}
+                name={`api-key-${provider.id}`}
+                class="input w-full"
+                type="password"
+                autocomplete="new-password"
+                 spellcheck="false"
+                data-1p-ignore
+                data-lpignore="true"
+                data-form-type="other"
+                readonly={!unlocked[provider.id]}
+                onfocus={() => {
+                  unlocked[provider.id] = true;
+                }}
+                bind:value={keys[provider.id]}
+                disabled={saving || clear[provider.id]}
+                placeholder={config.keys[provider.id]
+                  ? "已设置，留空保留"
+                  : "尚未设置"}
+              />
+            </div>
+          {/each}
+        </div>
+      </div>
+
+      <div class="border-base-300 flex items-center justify-between gap-3 border-t pt-4">
+        <div>
+          {#if notice}
+            <p
+              class={["text-sm", failed ? "text-error" : "text-success"]}
+              role="status"
+            >
+              {notice}
+            </p>
+          {/if}
+        </div>
         <button
           class="btn btn-primary btn-sm"
           disabled={saving || !chat || !memory}
         >
           {saving ? "保存中" : "保存设置"}
         </button>
-        {#if notice}<p
-            class={["text-sm", failed ? "text-error" : "text-success"]}
-            role="status"
-          >
-            {notice}
-          </p>{/if}
       </div>
     {:else if notice}
-      <p class="text-error text-sm" role="alert">{notice}</p>
-      <button
-        type="button"
-        class="btn btn-ghost btn-sm mt-2"
-        aria-label="重新加载模型设置"
-        onclick={load}
-      >
-        重试
-      </button>
+      <div class="flex items-center justify-between gap-3">
+        <p class="text-error text-sm" role="alert">{notice}</p>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          aria-label="重新加载模型设置"
+          onclick={load}
+        >
+          重试
+        </button>
+      </div>
     {:else}
-      <span
-        class="loading loading-spinner loading-sm"
-        aria-label="加载模型设置"
-      ></span>
+      <div class="flex justify-center py-6">
+        <span
+          class="loading loading-spinner loading-sm"
+          aria-label="加载模型设置"
+        ></span>
+      </div>
     {/if}
   </form>
 </section>

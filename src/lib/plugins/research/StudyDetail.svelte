@@ -90,7 +90,7 @@
   </Tabs.Content>
   <Tabs.Content value="analysis" class="space-y-6"><AnalysisPanel {study}/></Tabs.Content>
 </Tabs.Root>
-<div class="mt-6 border-t border-base-300 pt-5">
+<div class={['mt-6 pt-5', tab !== 'plan' && 'border-t border-base-300']}>
     {#if study.status === 'published'}<button class="btn btn-ghost btn-sm text-base-content/50" onclick={() => dialog = 'close'}>结束收集</button>{:else if study.status==='closed'&&study.expiresAt&&Date.now()<study.expiresAt}<button class="btn btn-outline btn-sm" disabled={busy} onclick={()=>act('reopen')}>继续收集</button>{/if}
 </div>
 

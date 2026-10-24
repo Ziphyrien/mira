@@ -1,7 +1,7 @@
 <script lang="ts">
  import {untrack} from 'svelte';
  import {goto} from '$app/navigation';
- import type {ResearchInspection} from '#lib/contracts/research.js';
+ import type {ResearchInspection,StudySummary} from '#lib/contracts/research.js';
  import StudyDetail from './StudyDetail.svelte';
  import StudyPreparation from './StudyPreparation.svelte';
  import Modal from '#lib/ui/Modal.svelte';
@@ -13,7 +13,7 @@
  let selected=$state.raw(untrack(()=>initial));let deleting=$state(false),removing=$state(false),removed=$state(false),failure=$state('');
  const id=$derived(selected.status==='ready'?selected.study.id:selected.id);
  const title=$derived(selected.status==='ready'?selected.study.plan.title:selected.topic);
- async function remove(){removing=true;failure='';try{const current=await researchRequest<ResearchInspection>('/api/research/'+id);if(current.status==='ready'&&current.study.status==='published')await researchRequest('/api/research/'+id,{action:'close'});await researchRequest('/api/research/'+id,undefined,'DELETE');await clearDrafts('study:'+id);queries.clear();deleting=false;if(administrator)await goto('/research');else removed=true;}catch(error){failure=error instanceof Error?error.message:'请重试。';}finally{removing=false;}}
+ async function remove(){removing=true;failure='';try{const current=await researchRequest<ResearchInspection>('/api/research/'+id);if(current.status==='ready'&&current.study.status==='published')await researchRequest('/api/research/'+id,{action:'close'});await researchRequest('/api/research/'+id,undefined,'DELETE');await clearDrafts('study:'+id);await queries.cancelQueries({queryKey:['/api/research']});queries.setQueryData<StudySummary[]>(['/api/research'],current=>current?.filter(study=>study.id!==id));queries.removeQueries({predicate:query=>String(query.queryKey[0])==='/api/research/'+id||String(query.queryKey[0]).startsWith('/api/research/'+id+'/')});deleting=false;if(administrator)await goto('/research');else removed=true;}catch(error){failure=error instanceof Error?error.message:'请重试。';}finally{removing=false;}}
 </script>
 <svelte:head><title>{title} · Mira</title><meta name="robots" content="noindex,nofollow"/></svelte:head>
 <main class="mx-auto max-w-5xl p-5 sm:p-8">

@@ -19,6 +19,25 @@ test("shared study management survives refresh, scopes access, analyzes a close 
   await page.request.post("/api/research/" + id, { data: { action: "rename", title } });
   await page.request.post("/api/research/" + id, { data: { action: "publish", reviewed: true } });
   await page.goto("/research");
+  const releaseNavigation = Promise.withResolvers<void>();
+  await page.route(`**/research/${id}/__data.json*`, async (route) => {
+    await releaseNavigation.promise;
+    await route.continue();
+  });
+  const study = page.getByRole("group", { name: title, exact: true });
+  try {
+    await study.getByRole("button", { name: new RegExp(title) }).click();
+    await expect(page.getByRole("status", { name: "加载中", exact: true })).toBeVisible();
+    await expect(study.getByRole("button", { name: new RegExp(title) })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "新建研究", exact: true })).toBeDisabled();
+  } finally {
+    releaseNavigation.resolve();
+    await page.unrouteAll({ behavior: "wait" });
+  }
+  await expect(page).toHaveURL(new RegExp("/research/" + id + "$"));
+  await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "加载中", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "返回研究列表", exact: true }).click();
   await page
     .getByRole("group", { name: title, exact: true })
     .getByRole("button", { name: "分享管理", exact: true })
